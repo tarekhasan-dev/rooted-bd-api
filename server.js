@@ -1,5 +1,9 @@
 require("dotenv").config();
 
+// Local DNS SRV সমস্যার সমাধান (MongoDB connect করার আগে থাকতেই হবে)
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 const express = require("express");
 const cors = require("cors");
 
@@ -7,6 +11,8 @@ const { connectDB } = require("./src/config/db");
 
 const eventRoutes = require("./src/routes/eventRoutes");
 const joinRoutes = require("./src/routes/joinRoutes");
+const profileRoutes = require("./src/routes/profileRoutes");
+const uploadRoutes = require("./src/routes/uploadRoutes");
 
 const createIndexes = require("./src/config/indexes");
 
@@ -37,22 +43,18 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Event Routes
+// Routes
 app.use("/events", eventRoutes);
-
-// Join Routes
 app.use("/joins", joinRoutes);
+app.use("/profile", profileRoutes);
+app.use("/upload", uploadRoutes);
 
 // Start Server
 const startServer = async () => {
   try {
-    // Connect MongoDB
     await connectDB();
-
-    // Create MongoDB Indexes
     await createIndexes();
 
-    // Start Express Server
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });

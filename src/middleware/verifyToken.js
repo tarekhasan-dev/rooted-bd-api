@@ -24,7 +24,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Import jose (ES Module compatible with CommonJS)
+    // Import jose
     const { jwtVerify, createRemoteJWKSet } = await import("jose");
 
     // Initialize JWKS only once
@@ -44,19 +44,38 @@ const verifyToken = async (req, res, next) => {
       }
     );
 
+    // Validate user information
+    if (!payload.sub || !payload.email) {
+      return res.status(401).json({
+        success: false,
+        message: "Required user information is missing!",
+      });
+    }
+
+    // Read roles from JWT
+    const rawRole = payload.role;
+
+    const roles =
+      typeof rawRole === "string"
+        ? rawRole.split(",").map((role) => role.trim())
+        : Array.isArray(rawRole)
+          ? rawRole
+          : [];
+
+    // Assign the highest authorized role
+    const role = roles.includes("admin")
+      ? "admin"
+      : roles.includes("organizer")
+        ? "organizer"
+        : "user";
+
     // Attach authenticated user information
     req.user = {
       id: payload.sub,
       email: payload.email,
-      name: payload.name,
+      name: payload.name || "",
+      role,
     };
-
-    if (!req.user.email) {
-      return res.status(401).json({
-        success: false,
-        message: "User email is missing from the token!",
-      });
-    }
 
     next();
   } catch (error) {
